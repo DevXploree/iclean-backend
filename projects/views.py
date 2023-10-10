@@ -36,7 +36,6 @@ def create_project(request):
 
         return Response({"message": "Project created successfully"}, status=status.HTTP_201_CREATED)
 
-
 @user_passes_test(lambda user: user.groups.filter(name='Sales Persons').exists())
 @api_view(['PUT'])
 def update_project(request, project_id):
@@ -57,7 +56,6 @@ def update_project(request, project_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Project.DoesNotExist:
         return Response({"message": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
-    
     
 @user_passes_test(lambda user: user.groups.filter(name='Sales Person').exists())
 @api_view(['DELETE'])
@@ -86,3 +84,33 @@ class ListProjects(ListAPIView):
     # Configure pagination
     pagination_class = PageNumberPagination
     page_size = 10  # Adjust the number of items per page as needed
+
+@user_passes_test(lambda user: user.groups.filter(name='Installation Persons').exists())
+@api_view(['PUT'])
+def pick_project(request, project_id):
+    try:
+        # Retrieve the project based on project_id
+        project = Project.objects.get(id=project_id)
+
+        # Check if the project is already taken
+        if project.already_taken:
+            return Response({"message": "This project has already been picked by another Installation Person."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Assign the project to the current Installation Person
+        project.already_taken = True
+        project.installation_person = request.user  # Assuming the user model has an installationpersons field
+        project.save()
+
+        return Response({"message": "Project picked successfully"}, status=status.HTTP_200_OK)
+    except Project.DoesNotExist:
+        return Response({"message": "Project not found"}, status=status.HTTP_404_NOT_FOUND)   
+
+@user_passes_test(lambda user: user.groups.filter(name='Installation Persons').exists())
+class ListPickedProjects(ListAPIView):
+    serializer_class = ProjectSerializer
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['created', 'updated']
+
+    def get_queryset(self):
+        # Retrieve and return the projects picked by the current Installation Person
+        return Project.objects.filter(installation_person=self.request.user)
