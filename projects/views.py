@@ -127,4 +127,4 @@ def send_update(request, project_id):
             else:
                 return Response({"failed": "You are not authorized to give update on this project"}, status=status.HTTP_400_BAD_REQUEST)            
         except:
-            return Response({"failed": "Project does not exists"}, status=status.HTTP_404_NOT_FOUND) 
+            return Response({"failed": "Project does not exists"}, status=status.HTTP404) 
