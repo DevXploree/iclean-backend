@@ -17,3 +17,9 @@ class Project(models.Model):
     
     def __str__(self) -> str:
         return f"{self.name} assigned to {self.installation_person.name}"
+    
+class Updates(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    update_desc = models.CharField(max_length=600, null = True, blank=True)
+    id = models.UUIDField(default=uuid4, primary_key=True, editable=False)
+    created = models.DateTimeField(auto_now_add=True)

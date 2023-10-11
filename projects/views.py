@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User, Group
 from .serializers import ProjectSerializer
-from .models import Project
+from .models import Project, Updates
 from rest_framework.generics import ListAPIView
 from rest_framework import filters
 from rest_framework.pagination import PageNumberPagination
@@ -105,7 +105,6 @@ def pick_project(request, project_id):
     except Project.DoesNotExist:
         return Response({"message": "Project not found"}, status=status.HTTP_404_NOT_FOUND)   
 
-@user_passes_test(lambda user: user.groups.filter(name='Installation Persons').exists())
 class ListPickedProjects(ListAPIView):
     serializer_class = ProjectSerializer
     filter_backends = [filters.OrderingFilter]
@@ -114,3 +113,18 @@ class ListPickedProjects(ListAPIView):
     def get_queryset(self):
         # Retrieve and return the projects picked by the current Installation Person
         return Project.objects.filter(installation_person=self.request.user)
+
+@user_passes_test(lambda user: user.groups.filter(name='Installation Persons').exists())    
+def send_update(request, project_id):
+    if request.method == "POST":
+        try:
+            project = Project.objects.get(id = project_id)
+            if project.installation_person == request.user:
+                update_desc = request.data.get("update_desc")
+                update = Updates(project = project, update_desc = update_desc)
+                update.save()
+                return Response({"success": "Successfully delivered the update"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"failed": "You are not authorized to give update on this project"}, status=status.HTTP_400_BAD_REQUEST)            
+        except:
+            return Response({"failed": "Project does not exists"}, status=status.HTTP_404_NOT_FOUND) 
