@@ -123,6 +123,7 @@ def send_update(request, project_id):
                 update_desc = request.data.get("update_desc")
                 update = Updates(project = project, update_desc = update_desc)
                 update.save()
+                # TODO: ADD PUSH NOTIFICATION LOGIC HERE THAT WILL SEND NOTIFCAITON TO THE PROJECT MANAGER
                 return Response({"success": "Successfully delivered the update"}, status=status.HTTP_200_OK)
             else:
                 return Response({"failed": "You are not authorized to give update on this project"}, status=status.HTTP_400_BAD_REQUEST)            
