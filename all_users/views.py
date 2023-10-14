@@ -140,3 +140,24 @@ def create_installation_person(request):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    
+@api_view(['POST'])
+@user_passes_test(lambda user: ProjectManagers.objects.filter(user=user).exists())
+def store_push_token(request):
+    if request.method == 'POST':
+        user = request.user 
+
+        # Get the Expo Push Token from the request data
+        expo_push_token = request.data.get('expo_push_token')
+
+        if expo_push_token is None:
+            return Response({'error': 'Expo Push Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Store the Expo Push Token for the Project Manager
+        project_manager = ProjectManagers.objects.get(user=user)
+        project_manager.push_token = expo_push_token
+        project_manager.save()
+
+        return Response({'message': 'Expo Push Token stored successfully'}, status=status.HTTP_200_OK)

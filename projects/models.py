@@ -14,6 +14,7 @@ class Project(models.Model):
     
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+    closed = models.BooleanField(default=False)
     
     def __str__(self) -> str:
         return f"{self.name} assigned to {self.installation_person.name}"
