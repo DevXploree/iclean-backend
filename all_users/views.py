@@ -7,16 +7,19 @@ from .models import SuperuserRequest, ProjectManagers, SalesPersons, Installatio
 from .serializers import SuperuserRequestSerializer, ProjectManagersSerializer, SalesPersonsSerializer, InstallationPersonsSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.decorators import user_passes_test
-from django.db import IntegrityError
 
 # SuperUser Request
 
 @api_view(['POST'])
 def superuser_request(request):
-    try:
-        username = request.data.get('username')
-        password = request.data.get('password')
+    username = request.data.get('username')
+    password = request.data.get('password')
 
+    # Check if a user with the same username already exists
+    if User.objects.filter(username=username).exists():
+        return Response({'message': 'User already exists with this username.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
         # Create a user account
         user = User(username=username)
         user.set_password(password)
@@ -27,13 +30,10 @@ def superuser_request(request):
         superuser_request.save()
 
         return Response({'message': 'User signup request submitted successfully.'}, status=status.HTTP_201_CREATED)
-    except IntegrityError as e:
-        # Handle integrity error (e.g., duplicate username)
-        return Response({'error': 'Integrity error: ' + str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         # Handle other unexpected errors
         return Response({'error': 'An error occurred: ' + str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+    
 # Super User Approval
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])  # Requires authentication, typically for the previous superuser
