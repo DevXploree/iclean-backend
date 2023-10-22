@@ -55,6 +55,7 @@ def approve_superuser_request(request, request_id):
     
     
 # Create Project Managers
+@permission_classes([IsAuthenticated])
 @user_passes_test(lambda user: user.is_superuser)
 @api_view(['POST'])
 def create_project_manager(request):
@@ -88,18 +89,21 @@ def create_project_manager(request):
     
     
 # Create Sales Person
-@user_passes_test(lambda user: user.groups.filter(name='Project Managers').exists())
+@permission_classes([IsAuthenticated])
 @api_view(['POST'])
 def create_sales_person(request):
     if request.method == 'POST':
+        is_project_manager = ProjectManagers.objects.filter(user = request.user).first().logged_in
+        if is_project_manager != "project_manager":
+            return Response({"error": "You are not authorized to create sales person"}, status=status.HTTP_401_UNAUTHORIZED)
         serializer = SalesPersonsSerializer(data=request.data)
         if serializer.is_valid():
             user_data = serializer.validated_data.get('user')
 
             # Create a new user account for the project manager
             user = User.objects.create_user(
-                username=user_data['username'],
-                password=user_data['password'],
+                username=user_data.get("username"),
+                password=user_data.get("password"),
                 first_name=user_data.get('first_name', ''),
                 last_name=user_data.get('last_name', '')
             )
@@ -120,18 +124,21 @@ def create_sales_person(request):
     
     
 # Create Installation Person
-@user_passes_test(lambda user: user.groups.filter(name='Project Managers').exists())
+@permission_classes([IsAuthenticated])
 @api_view(['POST'])
 def create_installation_person(request):
     if request.method == 'POST':
+        is_project_manager = ProjectManagers.objects.filter(user = request.user).first().logged_in
+        if is_project_manager != "project_manager":
+            return Response({"error": "You are not authorized to create sales person"}, status=status.HTTP_401_UNAUTHORIZED)
         serializer = InstallationPersonsSerializer(data=request.data)
         if serializer.is_valid():
             user_data = serializer.validated_data.get('user')
 
             # Create a new user account for the project manager
             user = User.objects.create_user(
-                username=user_data['username'],
-                password=user_data['password'],
+                username=user_data.get("username"),
+                password=user_data.get("password"),
                 first_name=user_data.get('first_name', ''),
                 last_name=user_data.get('last_name', '')
             )
@@ -149,15 +156,13 @@ def create_installation_person(request):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    
-    
+        
 @api_view(['POST'])
-@user_passes_test(lambda user: ProjectManagers.objects.filter(user=user).exists())
+@permission_classes([IsAuthenticated])
+# @user_passes_test(lambda user: ProjectManagers.objects.filter(user=user).exists())
 def store_push_token(request):
     if request.method == 'POST':
         user = request.user 
-
         # Get the Expo Push Token from the request data
         expo_push_token = request.data.get('expo_push_token')
 

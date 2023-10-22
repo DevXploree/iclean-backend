@@ -15,8 +15,7 @@ from datetime import date
 from exponent_server_sdk import PushClient, PushMessage
 from django.shortcuts import get_object_or_404
 
-
-@user_passes_test(lambda user: user.groups.filter(name='Sales Persons').exists())
+@permission_classes([IsAuthenticated])
 @api_view(['POST'])
 def create_project(request):
     if request.method == 'POST':
@@ -25,6 +24,10 @@ def create_project(request):
 
         # Extract data from the request
         data = request.data
+        
+        is_sales_person = SalesPersons.objects.filter(user = request.user).first().logged_in
+        if is_sales_person != "sales_person":
+            return Response({"error": "You are not authorized to create project"}, status=status.HTTP_401_UNAUTHORIZED)
 
         # Create a new project instance and set the sales_person
         project = Project(
@@ -39,10 +42,14 @@ def create_project(request):
 
         return Response({"message": "Project created successfully"}, status=status.HTTP_201_CREATED)
 
-@user_passes_test(lambda user: user.groups.filter(name='Sales Persons').exists())
+@permission_classes([IsAuthenticated])
 @api_view(['PUT'])
 def update_project(request, project_id):
     try:
+        is_sales_person = SalesPersons.objects.filter(user = request.user).first().logged_in
+        if is_sales_person != "sales_person":
+            return Response({"error": "You are not authorized to update project"}, status=status.HTTP_401_UNAUTHORIZED)
+
         # Retrieve the project based on project_id
         project = Project.objects.get(id=project_id)
 
@@ -64,10 +71,14 @@ def update_project(request, project_id):
     except Project.DoesNotExist:
         return Response({"message": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
     
-@user_passes_test(lambda user: user.groups.filter(name='Sales Person').exists())
+@permission_classes([IsAuthenticated])
 @api_view(['DELETE'])
 def delete_project(request, project_id):
-    try:
+    try:        
+        is_sales_person = SalesPersons.objects.filter(user = request.user).first().logged_in
+        if is_sales_person != "sales_person":
+            return Response({"error": "You are not authorized to delete project"}, status=status.HTTP_401_UNAUTHORIZED)
+
         # Retrieve the project based on project_id
         project = Project.objects.get(id=project_id)
 
@@ -96,10 +107,14 @@ class ListProjects(ListAPIView):
         # Filter projects where closed = False
         return Project.objects.filter(closed=False)
 
-@user_passes_test(lambda user: user.groups.filter(name='Installation Persons').exists())
+@permission_classes([IsAuthenticated])
 @api_view(['PUT'])
 def pick_project(request, project_id):
     try:
+        is_installation_person = InstallationPersons.objects.filter(user = request.user).first().logged_in
+        if is_installation_person != "installation_person":
+            return Response({"error": "You are not authorized to pick projects"}, status=status.HTTP_401_UNAUTHORIZED)
+
         # Retrieve the project based on project_id
         project = Project.objects.get(id=project_id)
 
@@ -125,10 +140,14 @@ class ListPickedProjects(ListAPIView):
         # Retrieve and return the projects picked by the current Installation Person
         return Project.objects.filter(installation_person=self.request.user)
 
-@user_passes_test(lambda user: user.groups.filter(name='Installation Persons').exists())    
+@permission_classes([IsAuthenticated])
 @api_view(['POST'])
 def notify_update(request, project_id):
     try:
+        is_installation_person = InstallationPersons.objects.filter(user = request.user).first().logged_in
+        if is_installation_person != "installation_person":
+            return Response({"error": "You are not authorized to give updates on projects"}, status=status.HTTP_401_UNAUTHORIZED)
+        
         project = get_object_or_404(Project, id=project_id)
 
         if project.installation_person == request.user:
@@ -160,7 +179,6 @@ def notify_update(request, project_id):
 
 class ListProjectsWithoutDailyUpdates(generics.ListAPIView):
     serializer_class = ProjectSerializer
-
     def get_queryset(self):
         # Get the current date
         current_date = date.today()
@@ -168,11 +186,13 @@ class ListProjectsWithoutDailyUpdates(generics.ListAPIView):
         # Filter projects that have no updates for the current date
         return Project.objects.exclude(updates__date=current_date).select_related('installation_person')
  
- 
-@api_view(['POST'])
-@user_passes_test(lambda user: user.groups.filter(name='Project Managers').exists())   
+@permission_classes([IsAuthenticated]) 
+@api_view(['POST'])   
 def close_project(request, project_id):
     try:
+        is_project_manager = ProjectManagers.objects.filter(user = request.user).first().logged_in
+        if is_project_manager != "project_manager":
+            return Response({"error": "You are not authorized to close projects"}, status=status.HTTP_401_UNAUTHORIZED)
         # Retrieve the project based on project_id
         project = Project.objects.get(id=project_id)
 
