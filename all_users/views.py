@@ -170,8 +170,20 @@ def store_push_token(request):
             return Response({'error': 'Expo Push Token is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Store the Expo Push Token for the Project Manager
-        project_manager = ProjectManagers.objects.get(user=user)
+        project_manager = ProjectManagers.objects.filter(user = request.user).first()
         project_manager.push_token = expo_push_token
         project_manager.save()
 
         return Response({'message': 'Expo Push Token stored successfully'}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def profile(request):
+    if(ProjectManagers.objects.filter(user = request.user).first()):
+        return Response({"user": "project_manager"})
+    elif(SalesPersons.objects.filter(user = request.user).first()):
+        return Response({"user": "sales_person"})
+    elif(InstallationPersons.objects.filter(user = request.user).first()):
+        return Response({"user": "installation_person"})
+    else:
+        return Response({"user": "superuser"})

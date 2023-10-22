@@ -14,6 +14,7 @@ urlpatterns = [
     # Authentication
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('profile/', views.profile, name='profile'),
 ]
 
 # localhost:8000/api/user/request-superuser/
