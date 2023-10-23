@@ -56,35 +56,38 @@ def approve_superuser_request(request, request_id):
     
 # Create Project Managers
 @permission_classes([IsAuthenticated])
-@user_passes_test(lambda user: user.is_superuser)
 @api_view(['POST'])
 def create_project_manager(request):
     if request.method == 'POST':
-        serializer = ProjectManagersSerializer(data=request.data)
-        if serializer.is_valid():
-            user_data = serializer.validated_data.get('user')
+        user = request.user
+        if user.is_superuser:
+            serializer = ProjectManagersSerializer(data=request.data)
+            if serializer.is_valid():
+                user_data = serializer.validated_data.get('user')
 
-            # Create a new user account for the project manager
-            user = User.objects.create_user(
-                username=user_data['username'],
-                password=user_data['password'],
-                first_name=user_data.get('first_name', ''),
-                last_name=user_data.get('last_name', '')
-            )
-            user.is_staff = True  # Optional
-            user.save()
+                # Create a new user account for the project manager
+                user = User.objects.create_user(
+                    username=user_data.get("username"),
+                    password=user_data.get("password"),
+                    first_name=user_data.get('first_name', ''),
+                    last_name=user_data.get('last_name', '')
+                )
+                user.is_staff = True  # Optional
+                user.save()
 
-            # Create the project manager instance with name, branch, and user
-            project_manager = ProjectManagers.objects.create(
-                user=user,
-                branch=serializer.validated_data.get('branch')
-            )
-            
-            project_manager.save()
-            group, created = Group.objects.get_or_create(name="Project Managers")
-            user.groups.add(group)
+                # Create the project manager instance with name, branch, and user
+                project_manager = ProjectManagers.objects.create(
+                    user=user,
+                    branch=serializer.validated_data.get('branch')
+                )
+                
+                project_manager.save()
+                group, created = Group.objects.get_or_create(name="Project Managers")
+                user.groups.add(group)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error":"You are not authorized to perform this action"}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
