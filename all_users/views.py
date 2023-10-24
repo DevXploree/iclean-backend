@@ -66,9 +66,10 @@ def create_project_manager(request):
                 user_data = serializer.validated_data.get('user')
 
                 # Create a new user account for the project manager
+                print(request.data["user"]["password"])
                 user = User.objects.create_user(
                     username=user_data.get("username"),
-                    password=user_data.get("password"),
+                    password=request.data["user"]["password"],
                     first_name=user_data.get('first_name', ''),
                     last_name=user_data.get('last_name', '')
                 )
@@ -106,7 +107,7 @@ def create_sales_person(request):
             # Create a new user account for the project manager
             user = User.objects.create_user(
                 username=user_data.get("username"),
-                password=user_data.get("password"),
+                password=request.data["user"]["password"],
                 first_name=user_data.get('first_name', ''),
                 last_name=user_data.get('last_name', '')
             )
@@ -141,7 +142,7 @@ def create_installation_person(request):
             # Create a new user account for the project manager
             user = User.objects.create_user(
                 username=user_data.get("username"),
-                password=user_data.get("password"),
+                password=request.data["user"]["password"],
                 first_name=user_data.get('first_name', ''),
                 last_name=user_data.get('last_name', '')
             )
