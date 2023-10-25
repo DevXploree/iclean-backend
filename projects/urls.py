@@ -6,7 +6,7 @@ urlpatterns = [
     path('create-project/', create_project, name='create_projects'),
     path('delete-project/<uuid:project_id>/', delete_project, name='delete_project'),
     path('update-project/<uuid:project_id>/', update_project, name='update_project'),
-    path('close-project/', close_project, name='close_project'),
+    path('close-project/<str:project_id>/', close_project, name='close_project'),
     
     path('pick-project/<uuid:project_id>/', pick_project, name='pick_project'),
     

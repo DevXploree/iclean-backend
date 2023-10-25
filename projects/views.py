@@ -111,8 +111,8 @@ class ListProjects(ListAPIView):
 @api_view(['PUT'])
 def pick_project(request, project_id):
     try:
-        is_installation_person = InstallationPersons.objects.filter(user = request.user).first().logged_in
-        if is_installation_person != "installation_person":
+        installation_person = InstallationPersons.objects.filter(user = request.user).first()
+        if installation_person.logged_in != "installation_person":
             return Response({"error": "You are not authorized to pick projects"}, status=status.HTTP_401_UNAUTHORIZED)
 
         # Retrieve the project based on project_id
@@ -124,7 +124,7 @@ def pick_project(request, project_id):
 
         # Assign the project to the current Installation Person
         project.already_taken = True
-        project.installation_person = request.user  # Assuming the user model has an installationpersons field
+        project.installation_person = installation_person  # Assuming the user model has an installationpersons field
         project.save()
 
         return Response({"message": "Project picked successfully"}, status=status.HTTP_200_OK)
@@ -144,13 +144,13 @@ class ListPickedProjects(ListAPIView):
 @api_view(['POST'])
 def notify_update(request, project_id):
     try:
-        is_installation_person = InstallationPersons.objects.filter(user = request.user).first().logged_in
-        if is_installation_person != "installation_person":
+        installation_person = InstallationPersons.objects.filter(user = request.user).first()
+        if installation_person.logged_in != "installation_person":
             return Response({"error": "You are not authorized to give updates on projects"}, status=status.HTTP_401_UNAUTHORIZED)
         
         project = get_object_or_404(Project, id=project_id)
 
-        if project.installation_person == request.user:
+        if project.installation_person == installation_person:
             update_desc = request.data.get("update_desc")
             update = Updates(project=project, update_desc=update_desc)
             update.save()
