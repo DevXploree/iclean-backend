@@ -138,7 +138,8 @@ class ListPickedProjects(ListAPIView):
 
     def get_queryset(self):
         # Retrieve and return the projects picked by the current Installation Person
-        return Project.objects.filter(installation_person=self.request.user)
+        installation_person = InstallationPersons.objects.filter(user = self.request.user).first()
+        return Project.objects.filter(installation_person=installation_person)
 
 @permission_classes([IsAuthenticated])
 @api_view(['POST'])
