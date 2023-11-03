@@ -2,16 +2,14 @@
 from all_users.models import SalesPersons, InstallationPersons, ProjectManagers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth.decorators import user_passes_test
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth.models import User, Group
-from .serializers import ProjectSerializer
+from .serializers import ProjectSerializer, UpdateSerializer
 from .models import Project, Updates
 from rest_framework.generics import ListAPIView
 from rest_framework import filters, generics
 from rest_framework.pagination import PageNumberPagination
-from datetime import date
+from django.utils import timezone
 from exponent_server_sdk import PushClient, PushMessage
 from django.shortcuts import get_object_or_404
 
@@ -20,7 +18,7 @@ from django.shortcuts import get_object_or_404
 def create_project(request):
     if request.method == 'POST':
         # Extract the Sales Person user
-        sales_person = request.user
+        sales_person = SalesPersons.objects.filter(user = request.user).first()
 
         # Extract data from the request
         data = request.data
@@ -34,6 +32,9 @@ def create_project(request):
             name=data.get('name'),
             desc=data.get('desc'),
             branch=data.get('branch'),
+            client_name=data.get('client_name'),
+            po_quantity=data.get('po_quantity'),
+            supplied_quantity=data.get('supplied_quantity'),
             sales_person=sales_person
         )
         
@@ -153,13 +154,20 @@ def notify_update(request, project_id):
 
         if project.installation_person == installation_person:
             update_desc = request.data.get("update_desc")
-            update = Updates(project=project, update_desc=update_desc)
+            installed_quatity = request.data.get("installed_quatity")
+            balance_to_be_installed = request.data.get("balance_to_be_installed")
+            handed_over_quantity = request.data.get("handed_over_quantity")
+            balance_to_be_handedover = request.data.get("balance_to_be_handedover")
+            
+            # Updates 
+            update = Updates(project=project, update_desc=update_desc, installed_quatity = installed_quatity, balance_to_be_installed = balance_to_be_installed, handed_over_quantity = handed_over_quantity, balance_to_be_handedover = balance_to_be_handedover)
+            
             update.save()
 
             # Send a push notification to all project managers
             project_managers = ProjectManagers.objects.all()
             for project_manager in project_managers:
-                if project_manager.user.expo_push_token:
+                if project_manager.push_token:
                     try:
                         message = f"Update for project: {project.name}"
                         extra_data = {'update_description': update_desc}
@@ -177,15 +185,19 @@ def notify_update(request, project_id):
             return Response({"failed": "You are not authorized to update this project"}, status=status.HTTP_400_BAD_REQUEST)
     except Project.DoesNotExist:
         return Response({"failed": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    
+    
 
 class ListProjectsWithoutDailyUpdates(generics.ListAPIView):
     serializer_class = ProjectSerializer
+
     def get_queryset(self):
-        # Get the current date
-        current_date = date.today()
+        # Get the current date in the desired format (e.g., YYYY-MM-DD)
+        current_date = timezone.now().date()
 
         # Filter projects that have no updates for the current date
-        return Project.objects.exclude(updates__date=current_date).select_related('installation_person')
+        return Project.objects.exclude(updates__created__date=current_date).select_related('installation_person')
  
 @permission_classes([IsAuthenticated]) 
 @api_view(['POST'])   
@@ -208,3 +220,18 @@ def close_project(request, project_id):
         return Response({"message": "Project closed successfully"}, status=status.HTTP_200_OK)
     except Project.DoesNotExist:
         return Response({"message": "Project not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def all_updates(request):
+    try:
+        project_manager = ProjectManagers.objects.filter(user = request.user).first()
+        if project_manager.logged_in != "project_manager":
+            return Response({"error": "You are not authorized"}, status=status.HTTP_401_UNAUTHORIZED)
+        updates = Updates.objects.all().order_by("-created")
+        serialized_data = UpdateSerializer(updates, many=True).data
+        
+        return Response(serialized_data)
+    except Exception as e:
+        return Response({"error":f"{e}"}) 

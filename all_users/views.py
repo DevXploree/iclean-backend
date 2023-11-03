@@ -11,9 +11,15 @@ from django.contrib.auth.decorators import user_passes_test
 # SuperUser Request
 
 @api_view(['POST'])
-def superuser_request(request):
+@permission_classes([IsAuthenticated])
+def create_superuser(request):
     username = request.data.get('username')
     password = request.data.get('password')
+    
+    admin_user = request.user
+    
+    if admin_user.is_superuser == False:
+        return Response({"Error": "You are not authorized"})
 
     # Check if a user with the same username already exists
     if User.objects.filter(username=username).exists():
@@ -23,35 +29,37 @@ def superuser_request(request):
         # Create a user account
         user = User(username=username)
         user.set_password(password)
+        user.is_superuser = True
+        user.is_staff = True
         user.save()
 
         # Create a superuser request
-        superuser_request = SuperuserRequest(user=user)
-        superuser_request.save()
+        # superuser_request = SuperuserRequest(user=user)
+        # superuser_request.save()
 
-        return Response({'message': 'User signup request submitted successfully.'}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Superuser created successfully.'}, status=status.HTTP_201_CREATED)
     except Exception as e:
         # Handle other unexpected errors
         return Response({'error': 'An error occurred: ' + str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 # Super User Approval
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])  # Requires authentication, typically for the previous superuser
-@user_passes_test(lambda user: user.is_superuser)
-def approve_superuser_request(request, request_id):
-    try:
-        superuser_request = SuperuserRequest.objects.get(pk=request_id)
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])  # Requires authentication, typically for the previous superuser
+# @user_passes_test(lambda user: user.is_superuser)
+# def approve_superuser_request(request, request_id):
+#     try:
+#         superuser_request = SuperuserRequest.objects.get(pk=request_id)
         
-        user = superuser_request.user
-        user.is_superuser = True
-        user.save()
+#         user = superuser_request.user
+#         user.is_superuser = True
+#         user.save()
         
-        superuser_request.is_approved = True
-        superuser_request.save()
+#         superuser_request.is_approved = True
+#         superuser_request.save()
 
-        return Response({'message': 'Superuser request approved successfully.'}, status=status.HTTP_200_OK)
-    except SuperuserRequest.DoesNotExist:
-        return Response({'message': 'Superuser request not found.'}, status=status.HTTP_404_NOT_FOUND)
+#         return Response({'message': 'Superuser request approved successfully.'}, status=status.HTTP_200_OK)
+#     except SuperuserRequest.DoesNotExist:
+#         return Response({'message': 'Superuser request not found.'}, status=status.HTTP_404_NOT_FOUND)
     
     
 # Create Project Managers
@@ -163,10 +171,8 @@ def create_installation_person(request):
         
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-# @user_passes_test(lambda user: ProjectManagers.objects.filter(user=user).exists())
 def store_push_token(request):
     if request.method == 'POST':
-        user = request.user 
         # Get the Expo Push Token from the request data
         expo_push_token = request.data.get('expo_push_token')
 

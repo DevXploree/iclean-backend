@@ -3,8 +3,8 @@ from . import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
-    path('request-superuser/', views.superuser_request, name='superuser_request'),
-    path('approve-superuser-request/<str:request_id>/', views.approve_superuser_request, name='approve_superuser_request'),
+    path('create-superuser/', views.create_superuser, name='create_superuser'),
+    # path('approve-superuser-request/<str:request_id>/', views.approve_superuser_request, name='approve_superuser_request'),
     path('create-project-manager/', views.create_project_manager, name='create_project_manager'),
     path('create-sales-person/', views.create_sales_person, name='create_sales_person'),
     path('create-installation-person/', views.create_installation_person, name='create_installation_person'),

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ListProjects, create_project, delete_project, update_project, pick_project, ListPickedProjects, ListProjectsWithoutDailyUpdates, close_project, notify_update
+from .views import ListProjects, create_project, delete_project, update_project, pick_project, ListPickedProjects, ListProjectsWithoutDailyUpdates, close_project, notify_update, all_updates
 
 urlpatterns = [
     path('list_projects/', ListProjects.as_view(), name='list_projects'),
@@ -13,7 +13,6 @@ urlpatterns = [
     path('list-picked-projects/', ListPickedProjects.as_view(), name='list_picked_projects'),
     path('projects-without-updates/', ListProjectsWithoutDailyUpdates.as_view(), name='list-projects-without-updates'),
     
-    path('notify-update/', notify_update, name='notify-update'),
+    path('notify-update/<str:project_id>/', notify_update, name='notify-update'),
+    path('all-updates/', all_updates, name='all-updates'),
 ]
-
-
