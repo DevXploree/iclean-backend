@@ -8,7 +8,6 @@ from .serializers import SuperuserRequestSerializer, ProjectManagersSerializer, 
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.decorators import user_passes_test
 
-# SuperUser Request
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -41,26 +40,6 @@ def create_superuser(request):
     except Exception as e:
         # Handle other unexpected errors
         return Response({'error': 'An error occurred: ' + str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-# Super User Approval
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])  # Requires authentication, typically for the previous superuser
-# @user_passes_test(lambda user: user.is_superuser)
-# def approve_superuser_request(request, request_id):
-#     try:
-#         superuser_request = SuperuserRequest.objects.get(pk=request_id)
-        
-#         user = superuser_request.user
-#         user.is_superuser = True
-#         user.save()
-        
-#         superuser_request.is_approved = True
-#         superuser_request.save()
-
-#         return Response({'message': 'Superuser request approved successfully.'}, status=status.HTTP_200_OK)
-#     except SuperuserRequest.DoesNotExist:
-#         return Response({'message': 'Superuser request not found.'}, status=status.HTTP_404_NOT_FOUND)
-    
     
 # Create Project Managers
 @permission_classes([IsAuthenticated])
@@ -106,32 +85,32 @@ def create_project_manager(request):
 def create_sales_person(request):
     if request.method == 'POST':
         is_project_manager = ProjectManagers.objects.filter(user = request.user).first().logged_in
-        if is_project_manager != "project_manager":
-            return Response({"error": "You are not authorized to create sales person"}, status=status.HTTP_401_UNAUTHORIZED)
-        serializer = SalesPersonsSerializer(data=request.data)
-        if serializer.is_valid():
-            user_data = serializer.validated_data.get('user')
+        if is_project_manager == "project_manager" or request.user.is_superuser:
+            serializer = SalesPersonsSerializer(data=request.data)
+            if serializer.is_valid():
+                user_data = serializer.validated_data.get('user')
 
-            # Create a new user account for the project manager
-            user = User.objects.create_user(
-                username=user_data.get("username"),
-                password=request.data["user"]["password"],
-                first_name=user_data.get('first_name', ''),
-                last_name=user_data.get('last_name', '')
-            )
-            user.save()
+                # Create a new user account for the project manager
+                user = User.objects.create_user(
+                    username=user_data.get("username"),
+                    password=request.data["user"]["password"],
+                    first_name=user_data.get('first_name', ''),
+                    last_name=user_data.get('last_name', '')
+                )
+                user.save()
 
-            # Create the project manager instance with name, branch, and user
-            sales_person = SalesPersons.objects.create(
-                user=user,
-                branch=serializer.validated_data.get('branch')
-            )
-            
-            sales_person.save()
-            group, created = Group.objects.get_or_create(name="Sales Persons")
-            user.groups.add(group)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+                # Create the project manager instance with name, branch, and user
+                sales_person = SalesPersons.objects.create(
+                    user=user,
+                    branch=serializer.validated_data.get('branch')
+                )
+                
+                sales_person.save()
+                group, created = Group.objects.get_or_create(name="Sales Persons")
+                user.groups.add(group)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error": "You are not authorized to create sales person"}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
@@ -141,32 +120,32 @@ def create_sales_person(request):
 def create_installation_person(request):
     if request.method == 'POST':
         is_project_manager = ProjectManagers.objects.filter(user = request.user).first().logged_in
-        if is_project_manager != "project_manager":
-            return Response({"error": "You are not authorized to create sales person"}, status=status.HTTP_401_UNAUTHORIZED)
-        serializer = InstallationPersonsSerializer(data=request.data)
-        if serializer.is_valid():
-            user_data = serializer.validated_data.get('user')
+        if is_project_manager == "project_manager" or request.user.is_superuser:
+            serializer = InstallationPersonsSerializer(data=request.data)
+            if serializer.is_valid():
+                user_data = serializer.validated_data.get('user')
 
-            # Create a new user account for the project manager
-            user = User.objects.create_user(
-                username=user_data.get("username"),
-                password=request.data["user"]["password"],
-                first_name=user_data.get('first_name', ''),
-                last_name=user_data.get('last_name', '')
-            )
-            user.save()
+                # Create a new user account for the project manager
+                user = User.objects.create_user(
+                    username=user_data.get("username"),
+                    password=request.data["user"]["password"],
+                    first_name=user_data.get('first_name', ''),
+                    last_name=user_data.get('last_name', '')
+                )
+                user.save()
 
-            # Create the project manager instance with name, branch, and user
-            installation_person = InstallationPersons.objects.create(
-                user=user,
-                branch=serializer.validated_data.get('branch')
-            )
-            
-            installation_person.save()
-            group, created = Group.objects.get_or_create(name="Installation Persons")
-            user.groups.add(group)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+                # Create the project manager instance with name, branch, and user
+                installation_person = InstallationPersons.objects.create(
+                    user=user,
+                    branch=serializer.validated_data.get('branch')
+                )
+                
+                installation_person.save()
+                group, created = Group.objects.get_or_create(name="Installation Persons")
+                user.groups.add(group)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"error": "You are not authorized to create Installation person"}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 @api_view(['POST'])
@@ -195,5 +174,5 @@ def profile(request):
         return Response({"user": "sales_person"})
     elif(InstallationPersons.objects.filter(user = request.user).first()):
         return Response({"user": "installation_person"})
-    else:
+    elif(request.user.is_superuser):
         return Response({"user": "superuser"})
